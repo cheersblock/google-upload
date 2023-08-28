@@ -5,6 +5,7 @@ import path from "path";
 import { executeQuery } from "../../../config/db";
 import AdmZip from "adm-zip";
 import fs from "fs";
+import fse from 'fs-extra';
 
 const folderId = "1dW72byCbJGEJNi12TL9RxGwrk0b4ViYw";
 
@@ -124,6 +125,24 @@ const scanFolderForFiles = async (folderPath, _fId) => {
       ).then(
         async () => await fs.promises.rm(path.join(folderPath, dirent.name))
       );
+    } else if (dirent.isDirectory()) {
+      var newFilePath = path.join(folderPath, "/", dirent.name);
+      console.log("Directory Path", newFilePath);
+      const fileMetadata = {
+        name: dirent.name,
+        parents: [_fId],
+        mimeType: "application/vnd.google-apps.folder",
+      };
+      const file = await drive.files
+        .create({
+          resource: fileMetadata,
+          fields: "id",
+        })
+        .then((res) => {
+          scanFolderForFiles(newFilePath, res.data.id).then(
+            async () => await fs.promises.rmdir(newFilePath)
+          );
+        });
     }
   }
 };
