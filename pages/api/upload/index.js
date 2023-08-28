@@ -62,9 +62,7 @@ handler.post(async (req, res) => {
   let filename = req.file.filename.replace(".zip", "");
 
   const zip = new AdmZip(uploadedFilePath);
-  zip.extractAllTo(unzipDestination, true).then(async () => {
-    await fs.promises.rmdir(uploadedFilePath);
-  });
+  zip.extractAllTo(unzipDestination, true);
 
   // Upload to Google
   // Create Folder
