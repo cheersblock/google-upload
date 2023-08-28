@@ -31,18 +31,21 @@ const getDriveService = () => {
 
 const drive = getDriveService();
 
-let storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public");
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  },
-});
+// let storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "public");
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, file.originalname);
+//   },
+// });
 
-let upload = multer({
-  storage: storage,
-});
+// let upload = multer({
+//   storage: storage,
+// });
+
+const memoryStorage = multer.memoryStorage();
+const upload = multer({ storage: memoryStorage });
 
 let uploadFile = upload.single("zipFile");
 handler.use(uploadFile);
@@ -51,17 +54,17 @@ handler.post(async (req, res) => {
   console.log("req.file", req.file);
   console.log("req.body", req.body);
 
-  console.log("req.file.filename", req.file.filename);
+  console.log("req.file.filename", req.file.originalname);
 
   // Unzip File
-  const uploadedFilePath = path.join("./public", req.file.filename);
+  // const uploadedFilePath = path.join("./public", req.file.originalname);
   const unzipDestination = path.join(
     "./unzipped",
-    req.file.filename.replace(".zip", "")
+    req.file.originalname.replace(".zip", "")
   );
-  let filename = req.file.filename.replace(".zip", "");
+  let filename = req.file.originalname.replace(".zip", "");
 
-  const zip = new AdmZip(uploadedFilePath);
+  const zip = new AdmZip(req.file.buffer);
   zip.extractAllTo(unzipDestination, true);
 
   // Upload to Google
