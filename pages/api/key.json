@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "katana-inu-launcher",
+  "private_key_id": "ca79d226af131ef5ad8b005724cac9994c86b539",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDFsxFroJw3qZZA\nLIASrDnyr2VqyIFlK1vD0lNWk1mUT0zFnxBEM7v1InoE2/Zceh7M0zVX5t8sS+lp\nMow0JrTlvUyfHXwHhw6nzR/uwHiy94ZQP/t4wTGMnhIlQRuL5+Cm59nAZqlUX3rF\nwg3zK/xgJyLM3yBWX+E271/ZtPn65ZDM7H9p8eaZLn7pFpRmoYrd9eOEqmUTNxHx\ny04J9AqTa/1LgNAOPTObTk9zL9Ma3RrSat7nx+tIuZZOM8HTEulpkELLJul7QV3w\nQUI4fJdjvJJfyK5bOXBCzUw/gj1+K1EFEMta7T68/wEZXFO3b5H4Yb8fwNE3ey3L\nkNi5kyibAgMBAAECggEAGDUQQat4NWCbOIm6YjmbHC+Egt9rk1Bh0MfPfd8BAvtK\nx+VC1UxjDBBdUdGqiDGef9oEwsSkOFpQiZmvjTCIH0a0kRnHzBbUy+XUA89ReCh9\ngRS0iAQFOytHxtlYCXjVCzAse4tBL0bu/jQAB/HaLzPbkQET2+pVkKfIMXIgLID5\nxXm99+LKZmK9KNhIDiz/ksB0Z9289VgFcCyz3fhf/tAWBOpnQJbOgTMeyEKh6Yj7\nex23qOkypPeUnub7pfjvurlb6C3FG2++JfKXDOj/yIT/gGHDAoxFGuT9Ffy4pfDS\n02M/hu7Px6/Vog0X/jK020qQty3HFtOOGavt5z1FgQKBgQDlVBjEpwNvvLI0ZcQR\nIMYkd4sVId/Wp5+GtQPbYP/G3DQwo01+Wl+1H6lF11YHT0l4lLzAIivwDoD6cOM+\nbgnXLmV9E6GHsuEnFxgV6xwpDJYrVmwbhSxSnahJWnANVdGEYN8RNdyVyUqKdsPO\n3jmZHsGK/JwRiErPxytBk3CyIQKBgQDcsUQVZS4m8Sn6Y6wmIHS6LoZPnq05GiBg\ngRYuB1qgmL0ZuH/Vzrl5YObcoEAm/Gvk+dyQxLBOZn5RAgOXa3CMYfef4AD93u9h\neo8/aqkqeBcRWOe/d5/En6eNradGrinAmNsuQs7QQpluuiiV174H4vAxBOKTg2DJ\nIABelPy7OwKBgQDBHlmhORfev6O+FjjPR680RGseR6Fs7UmcsdDmrD+YohVdJBf9\nIHPaXig5BUaP70fqwC5XCi+//ybEP85N43Jr/8k9VAvB73RFa+A/jPbw5oWLR0LQ\nxgv2Iof2Ba+4ux0uAjm3D4mLpbAc/DiWe3M7q7fGqEVxSjnd0VZu6Y+MoQKBgQDb\nLHlPPkMNjaiA8QgAfW8vkBD3dcDW2umYrdqXL9qDb+0tZBwg/MMalm/wYH4Vuc51\ngufYJl5qHkQIs5VZhewqnwjLkC2r8wGNr6gf9Q+4C7ftFHxjnKvhHCXNAM8F1OXG\nToguc07taZbzbpHr7mzdbDXamN1kXq96TvvO8uvkDQKBgBpX07wsTfAE6MxGSYtE\naMl1cjCcTJbtbfTvaeX5etHuXwVsK8ewEykz9EbBm/V3hebbSu48XHpqHlyt6h/M\n+N31ZaNnXDdm2LyEAtxSylQFOuj/qMdVJ59qCcuVu4bodA8Ubv9ch2ePTFpna4R7\nkQ0b/Xu78tGKvhXFONldEWq/\n-----END PRIVATE KEY-----\n",
+  "client_email": "katana-service-account@katana-inu-launcher.iam.gserviceaccount.com",
+  "client_id": "100093621702298628291",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/katana-service-account%40katana-inu-launcher.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
