@@ -1,7 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import io from "socket.io-client";
+// const socket = io();
+// const socket = io("http://localhost:3000/api/upload");
 
 const Home = () => {
   const [file, setFile] = useState(null);
+  //**** */
+  useEffect(() => {
+    console.log("Hello");
+    fetch("/api/socket").finally(() => {
+      const socket = io();
+
+      socket.on("connect", () => {
+        console.log("connect");
+        socket.emit("hello");
+      });
+
+      socket.on("hello", (data) => {
+        console.log("hello", data);
+      });
+
+      socket.on("disconnect", () => {
+        console.log("disconnect");
+      });
+    });
+  }, []);
+
+  // useEffect(() => {
+  //   socket.on("progress", (data) => {
+  //     console.log("Received progress update:", data);
+  //     // Update UI with progress information
+  //   });
+  // }, []);
+  //********* */
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
