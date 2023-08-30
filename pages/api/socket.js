@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 
-let io;
+var io;
 
 const ioHandler = (req, res) => {
   if (!res.socket.server.io) {
@@ -17,10 +17,9 @@ const ioHandler = (req, res) => {
       socket.on("hello", (msg) => {
         socket.emit("hello", "world!");
       });
-      res.socket.server.io = socket;
-      global.socket = socket;
+      //   res.socket.server.io = socket;
     });
-    // res.socket.server.io = io;
+    res.socket.server.io = io;
   } else {
     console.log("socket.io already running");
   }
@@ -30,6 +29,8 @@ const ioHandler = (req, res) => {
 export const toAll = function (eventName, data) {
   io.sockets.emit(eventName, data);
 };
+
+// console.log("ioioioioioio",io);
 
 export const config = {
   api: {
