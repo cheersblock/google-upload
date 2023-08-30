@@ -19,6 +19,10 @@ const Home = () => {
         console.log("hello", data);
       });
 
+      socket.on("progress", (data) => {
+        console.log("Progress made", data);
+      });
+
       socket.on("disconnect", () => {
         console.log("disconnect");
       });

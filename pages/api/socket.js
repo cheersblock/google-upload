@@ -1,13 +1,12 @@
 import { Server } from "socket.io";
 
-var io;
+export var io;
 
 const ioHandler = (req, res) => {
   if (!res.socket.server.io) {
-    console.log("*First use, starting socket.io", res.socket.server);
+    console.log("*First use, starting socket.io");
 
     io = new Server(res.socket.server);
-
     io.on("connection", (socket) => {
       socket.broadcast.emit("a user connected");
       socket.on("progress", (msg) => {
@@ -22,6 +21,7 @@ const ioHandler = (req, res) => {
     res.socket.server.io = io;
   } else {
     console.log("socket.io already running");
+    io = res.socket.server.io;
   }
   res.end();
 };
@@ -29,8 +29,6 @@ const ioHandler = (req, res) => {
 export const toAll = function (eventName, data) {
   io.sockets.emit(eventName, data);
 };
-
-// console.log("ioioioioioio",io);
 
 export const config = {
   api: {

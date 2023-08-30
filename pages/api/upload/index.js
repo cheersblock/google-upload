@@ -8,26 +8,10 @@ import fs from "fs";
 import { Server } from "socket.io";
 import http from "http";
 import { toAll } from "../socket";
-// import ioHandler from "./../socket";
 
-// console.log("IOIOIOI", ioHandler.io);
+var numberOfFiles, filesDoneUpl;
 
 const handler = nc(onError);
-
-// Create an HTTP server for WebSocket
-// const httpServer = http.createServer(handler);
-// const io = new Server(httpServer);
-
-// io.on("connection", (socket) => {
-//   console.log("A user connected");
-
-//   // Handle progress updates
-//   socket.on("progress", (data) => {
-//     console.log("Progress update received:", data);
-//     // Emit progress update to all connected clients
-//     io.emit("progress", data);
-//   });
-// });
 
 const folderId = "1dW72byCbJGEJNi12TL9RxGwrk0b4ViYw";
 
@@ -36,8 +20,6 @@ export const config = {
     bodyParser: false,
   },
 };
-
-// const handler = nc(onError);
 
 const { google } = require("googleapis");
 const getDriveService = () => {
@@ -54,19 +36,6 @@ const getDriveService = () => {
 
 const drive = getDriveService();
 
-// let storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, "public");
-//   },
-//   filename: function (req, file, cb) {
-//     cb(null, file.originalname);
-//   },
-// });
-
-// let upload = multer({
-//   storage: storage,
-// });
-
 const memoryStorage = multer.memoryStorage();
 const upload = multer({ storage: memoryStorage });
 
@@ -76,14 +45,11 @@ handler.use(uploadFile);
 handler.post(async (req, res) => {
   console.log("req.file", req.file);
   console.log("req.body", req.body);
-  // console.log("res.socket.server.io", res.socket.server.io);
-  // io = res.socket.server.io;
-  // socket.emit("hello", "worldsss!");
+  const socketio = res.socket.server.io;
 
   console.log("req.file.filename", req.file.originalname);
 
   // Unzip File
-  // const uploadedFilePath = path.join("./public", req.file.originalname);
   const unzipDestination = path.join(
     "./unzipped",
     req.file.originalname.replace(".zip", "")
@@ -92,6 +58,10 @@ handler.post(async (req, res) => {
 
   const zip = new AdmZip(req.file.buffer);
   zip.extractAllTo(unzipDestination, true);
+  const entries = zip.getEntries();
+  numberOfFiles = entries.length;
+  filesDoneUpl = entries.length;
+  console.log("Entries of files", numberOfFiles);
 
   // Upload to Google
   // Create Folder
@@ -108,8 +78,9 @@ handler.post(async (req, res) => {
     })
     .then((res) => {
       console.log("🚀 ~ file: index.js:81 ~ .then ~ res:", res.data.id);
+
       fileId = res.data.id;
-      scanFolderForFiles(unzipDestination, res.data.id, res).then(
+      scanFolderForFiles(unzipDestination, res.data.id, socketio).then(
         async () => await fs.promises.rmdir(unzipDestination)
       );
     });
@@ -139,11 +110,12 @@ const uploadSingleFile = async (fileName, filePath, _folderId, res) => {
   console.log("File Uploaded", name, id);
   const progress = 1;
   // io.emit("progress", { id, progress });
-  toAll("progress", id, progress);
-  // res.socket.server.io.emit("progress", { id, progress });
+  // toAll("progress", id, progress);
+  --filesDoneUpl;
+  res.sockets.emit("progress", { numberOfFiles, filesDoneUpl });
 };
 
-const scanFolderForFiles = async (folderPath, _fId, res) => {
+const scanFolderForFiles = async (folderPath, _fId, socketio) => {
   const folder = await fs.promises.opendir(folderPath);
   for await (const dirent of folder) {
     if (dirent.isFile()) {
@@ -151,7 +123,7 @@ const scanFolderForFiles = async (folderPath, _fId, res) => {
         dirent.name,
         path.join(folderPath, dirent.name),
         _fId,
-        res
+        socketio
       ).then(
         async () => await fs.promises.rm(path.join(folderPath, dirent.name))
       );
@@ -169,7 +141,8 @@ const scanFolderForFiles = async (folderPath, _fId, res) => {
           fields: "id",
         })
         .then((res) => {
-          scanFolderForFiles(newFilePath, res.data.id).then(
+          --filesDoneUpl;
+          scanFolderForFiles(newFilePath, res.data.id, socketio).then(
             async () => await fs.promises.rmdir(newFilePath)
           );
         });
