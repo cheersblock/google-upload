@@ -5,7 +5,13 @@ import path from "path";
 import { executeQuery } from "../../../config/db";
 import AdmZip from "adm-zip";
 import fs from "fs";
-import fse from 'fs-extra';
+import { Server } from "socket.io";
+import http from "http";
+import { toAll } from "../socket";
+
+var numberOfFiles, filesDoneUpl;
+
+const handler = nc(onError);
 
 const folderId = "1dW72byCbJGEJNi12TL9RxGwrk0b4ViYw";
 
@@ -14,8 +20,6 @@ export const config = {
     bodyParser: false,
   },
 };
-
-const handler = nc(onError);
 
 const { google } = require("googleapis");
 const getDriveService = () => {
@@ -32,19 +36,6 @@ const getDriveService = () => {
 
 const drive = getDriveService();
 
-// let storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, "public");
-//   },
-//   filename: function (req, file, cb) {
-//     cb(null, file.originalname);
-//   },
-// });
-
-// let upload = multer({
-//   storage: storage,
-// });
-
 const memoryStorage = multer.memoryStorage();
 const upload = multer({ storage: memoryStorage });
 
@@ -54,11 +45,11 @@ handler.use(uploadFile);
 handler.post(async (req, res) => {
   console.log("req.file", req.file);
   console.log("req.body", req.body);
+  const socketio = res.socket.server.io;
 
   console.log("req.file.filename", req.file.originalname);
 
   // Unzip File
-  // const uploadedFilePath = path.join("./public", req.file.originalname);
   const unzipDestination = path.join(
     "./unzipped",
     req.file.originalname.replace(".zip", "")
@@ -67,6 +58,10 @@ handler.post(async (req, res) => {
 
   const zip = new AdmZip(req.file.buffer);
   zip.extractAllTo(unzipDestination, true);
+  const entries = zip.getEntries();
+  numberOfFiles = entries.length;
+  filesDoneUpl = entries.length;
+  console.log("Entries of files", numberOfFiles);
 
   // Upload to Google
   // Create Folder
@@ -83,8 +78,9 @@ handler.post(async (req, res) => {
     })
     .then((res) => {
       console.log("🚀 ~ file: index.js:81 ~ .then ~ res:", res.data.id);
+
       fileId = res.data.id;
-      scanFolderForFiles(unzipDestination, res.data.id).then(
+      scanFolderForFiles(unzipDestination, res.data.id, socketio).then(
         async () => await fs.promises.rmdir(unzipDestination)
       );
     });
@@ -97,7 +93,7 @@ handler.post(async (req, res) => {
   });
 });
 
-const uploadSingleFile = async (fileName, filePath, _folderId) => {
+const uploadSingleFile = async (fileName, filePath, _folderId, res) => {
   console.log("Folder Id inside upload file:", _folderId);
 
   const { data: { id, name } = {} } = await drive.files.create({
@@ -112,16 +108,22 @@ const uploadSingleFile = async (fileName, filePath, _folderId) => {
     fields: "id,name",
   });
   console.log("File Uploaded", name, id);
+  const progress = 1;
+  // io.emit("progress", { id, progress });
+  // toAll("progress", id, progress);
+  --filesDoneUpl;
+  res.sockets.emit("progress", { numberOfFiles, filesDoneUpl });
 };
 
-const scanFolderForFiles = async (folderPath, _fId) => {
+const scanFolderForFiles = async (folderPath, _fId, socketio) => {
   const folder = await fs.promises.opendir(folderPath);
   for await (const dirent of folder) {
     if (dirent.isFile()) {
       await uploadSingleFile(
         dirent.name,
         path.join(folderPath, dirent.name),
-        _fId
+        _fId,
+        socketio
       ).then(
         async () => await fs.promises.rm(path.join(folderPath, dirent.name))
       );
@@ -139,7 +141,8 @@ const scanFolderForFiles = async (folderPath, _fId) => {
           fields: "id",
         })
         .then((res) => {
-          scanFolderForFiles(newFilePath, res.data.id).then(
+          --filesDoneUpl;
+          scanFolderForFiles(newFilePath, res.data.id, socketio).then(
             async () => await fs.promises.rmdir(newFilePath)
           );
         });
