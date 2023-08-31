@@ -9,7 +9,8 @@ import { Server } from "socket.io";
 import http from "http";
 import { toAll } from "../socket";
 
-var numberOfFiles, filesDoneUpl;
+var numberOfFiles = 0;
+var filesDoneUpl = 0;
 
 const handler = nc(onError);
 
@@ -59,9 +60,16 @@ handler.post(async (req, res) => {
   const zip = new AdmZip(req.file.buffer);
   zip.extractAllTo(unzipDestination, true);
   const entries = zip.getEntries();
-  numberOfFiles = entries.length;
-  filesDoneUpl = entries.length;
-  console.log("Entries of files", numberOfFiles);
+  // numberOfFiles = entries.length;
+  // filesDoneUpl = entries.length;
+  // console.log("Entries of files", numberOfFiles);
+
+  entries.forEach((entry) => {
+    if (!entry.isDirectory) {
+      ++numberOfFiles;
+      ++filesDoneUpl;
+    }
+  });
 
   // Upload to Google
   // Create Folder
@@ -141,7 +149,6 @@ const scanFolderForFiles = async (folderPath, _fId, socketio) => {
           fields: "id",
         })
         .then((res) => {
-          --filesDoneUpl;
           scanFolderForFiles(newFilePath, res.data.id, socketio).then(
             async () => await fs.promises.rmdir(newFilePath)
           );
