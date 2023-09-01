@@ -27,14 +27,14 @@ const getDriveService = () => {
   const KEYFILEPATH = path.join(__dirname, "key.json");
   const SCOPES = ["https://www.googleapis.com/auth/drive"];
 
-  google.options({
-    timeout: 5000,
-    retryConfig: {
-      retry: 100,
-      retryDelay: 1000,
-    },
-    retry: true,
-  });
+  // google.options({
+  //   timeout: 5000,
+  //   retryConfig: {
+  //     retry: 100,
+  //     retryDelay: 1000,
+  //   },
+  //   retry: true,
+  // });
 
   const auth = new google.auth.GoogleAuth({
     keyFile: "./pages/api/key.json",
@@ -98,10 +98,9 @@ handler.post(async (req, res) => {
       console.log("🚀 ~ file: index.js:81 ~ .then ~ res:", res.data.id);
 
       fileId = res.data.id;
-      scanFolderForFiles(unzipDestination, res.data.id, socketio)
-      // .then(
-      //   async () => await fs.promises.rmdir(unzipDestination)
-      // );
+      scanFolderForFiles(unzipDestination, res.data.id, socketio).then(
+        async () => await fs.promises.rmdir(unzipDestination)
+      );
     });
   console.log("Folder Id:", file.data.id);
 
@@ -162,9 +161,11 @@ const scanFolderForFiles = async (folderPath, _fId, socketio) => {
         .then((res) => {
           scanFolderForFiles(newFilePath, res.data.id, socketio).then(
             async () => {
-              // await fs.promises.rmdir(newFilePath);
-              if (filesDoneUpl == 0)
+              await fs.promises.rmdir(newFilePath);
+              if (filesDoneUpl == 0) {
                 fs.rmSync(mainDirectory, { recursive: true, force: true });
+                console.log("--------Done Uploading!---------");
+              }
             }
           );
         });
