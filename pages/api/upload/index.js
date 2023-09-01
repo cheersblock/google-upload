@@ -11,6 +11,7 @@ import { toAll } from "../socket";
 
 var numberOfFiles = 0;
 var filesDoneUpl = 0;
+var mainDirectory = "";
 
 const handler = nc(onError);
 
@@ -60,6 +61,7 @@ handler.post(async (req, res) => {
   const zip = new AdmZip(req.file.buffer);
   zip.extractAllTo(unzipDestination, true);
   const entries = zip.getEntries();
+  mainDirectory = unzipDestination;
   // numberOfFiles = entries.length;
   // filesDoneUpl = entries.length;
   // console.log("Entries of files", numberOfFiles);
@@ -136,7 +138,7 @@ const scanFolderForFiles = async (folderPath, _fId, socketio) => {
         async () => await fs.promises.rm(path.join(folderPath, dirent.name))
       );
     } else if (dirent.isDirectory()) {
-      var newFilePath = path.join(folderPath, "/", dirent.name);
+      var newFilePath = path.join(folderPath, dirent.name);
       console.log("Directory Path", newFilePath);
       const fileMetadata = {
         name: dirent.name,
@@ -150,7 +152,11 @@ const scanFolderForFiles = async (folderPath, _fId, socketio) => {
         })
         .then((res) => {
           scanFolderForFiles(newFilePath, res.data.id, socketio).then(
-            async () => await fs.promises.rmdir(newFilePath)
+            async () => {
+              await fs.promises.rmdir(newFilePath);
+              if (filesDoneUpl == 0)
+                fs.rmSync(mainDirectory, { recursive: true, force: true });
+            }
           );
         });
     }
