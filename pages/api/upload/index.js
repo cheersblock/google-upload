@@ -2,12 +2,12 @@ import nc from "next-connect";
 import onError from "../../../common/errormiddleware";
 import multer from "multer";
 import path from "path";
-import { executeQuery } from "../../../config/db";
 import AdmZip from "adm-zip";
 import fs from "fs";
 import { Server } from "socket.io";
 import http from "http";
 import { toAll } from "../socket";
+const { google } = require("googleapis");
 
 var numberOfFiles = 0;
 var filesDoneUpl = 0;
@@ -23,10 +23,18 @@ export const config = {
   },
 };
 
-const { google } = require("googleapis");
 const getDriveService = () => {
   const KEYFILEPATH = path.join(__dirname, "key.json");
   const SCOPES = ["https://www.googleapis.com/auth/drive"];
+
+  google.options({
+    timeout: 5000,
+    retryConfig: {
+      retry: 100,
+      retryDelay: 1000,
+    },
+    retry: true,
+  });
 
   const auth = new google.auth.GoogleAuth({
     keyFile: "./pages/api/key.json",
@@ -90,9 +98,10 @@ handler.post(async (req, res) => {
       console.log("🚀 ~ file: index.js:81 ~ .then ~ res:", res.data.id);
 
       fileId = res.data.id;
-      scanFolderForFiles(unzipDestination, res.data.id, socketio).then(
-        async () => await fs.promises.rmdir(unzipDestination)
-      );
+      scanFolderForFiles(unzipDestination, res.data.id, socketio)
+      // .then(
+      //   async () => await fs.promises.rmdir(unzipDestination)
+      // );
     });
   console.log("Folder Id:", file.data.id);
 
@@ -153,7 +162,7 @@ const scanFolderForFiles = async (folderPath, _fId, socketio) => {
         .then((res) => {
           scanFolderForFiles(newFilePath, res.data.id, socketio).then(
             async () => {
-              await fs.promises.rmdir(newFilePath);
+              // await fs.promises.rmdir(newFilePath);
               if (filesDoneUpl == 0)
                 fs.rmSync(mainDirectory, { recursive: true, force: true });
             }
