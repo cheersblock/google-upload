@@ -13,6 +13,7 @@ const ioHandler = (req, res) => {
         console.log("Progress Made", msg);
         socket.broadcast.emit("new-progress", msg);
       });
+     
       socket.on("hello", (msg) => {
         socket.emit("hello", "world!");
       });

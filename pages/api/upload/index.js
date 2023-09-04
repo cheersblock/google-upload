@@ -12,6 +12,7 @@ const { google } = require("googleapis");
 var numberOfFiles = 0;
 var filesDoneUpl = 0;
 var mainDirectory = "";
+var totalSize = 0;
 
 const handler = nc(onError);
 
@@ -27,14 +28,14 @@ const getDriveService = () => {
   const KEYFILEPATH = path.join(__dirname, "key.json");
   const SCOPES = ["https://www.googleapis.com/auth/drive"];
 
-  // google.options({
-  //   timeout: 5000,
-  //   retryConfig: {
-  //     retry: 100,
-  //     retryDelay: 1000,
-  //   },
-  //   retry: true,
-  // });
+  google.options({
+    timeout: 5000,
+    retryConfig: {
+      retry: 100,
+      retryDelay: 1000,
+    },
+    retry: true,
+  });
 
   const auth = new google.auth.GoogleAuth({
     keyFile: "./pages/api/key.json",
@@ -54,8 +55,10 @@ handler.use(uploadFile);
 
 handler.post(async (req, res) => {
   console.log("req.file", req.file);
+  console.log("Size:", req.file.size);
   console.log("req.body", req.body);
   const socketio = res.socket.server.io;
+  totalSize = req.file.size;
 
   console.log("req.file.filename", req.file.originalname);
 
@@ -127,8 +130,6 @@ const uploadSingleFile = async (fileName, filePath, _folderId, res) => {
   });
   console.log("File Uploaded", name, id);
   const progress = 1;
-  // io.emit("progress", { id, progress });
-  // toAll("progress", id, progress);
   --filesDoneUpl;
   res.sockets.emit("progress", { numberOfFiles, filesDoneUpl });
 };
@@ -164,6 +165,7 @@ const scanFolderForFiles = async (folderPath, _fId, socketio) => {
               await fs.promises.rmdir(newFilePath);
               if (filesDoneUpl == 0) {
                 fs.rmSync(mainDirectory, { recursive: true, force: true });
+                socketio.emit("Done Uploading", { numberOfFiles, totalSize });
                 console.log("--------Done Uploading!---------");
               }
             }

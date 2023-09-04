@@ -61,6 +61,11 @@ const Home = () => {
         console.log("hello", data);
       });
 
+      socket.on("Done Uploading", (data) => {
+        console.log("Files Data", data);
+        socket.disconnect();
+      });
+
       socket.on("progress", (data) => {
         console.log("Progress made", data);
         const progress = Math.floor(
