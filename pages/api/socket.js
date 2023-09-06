@@ -9,6 +9,9 @@ const ioHandler = (req, res) => {
     io = new Server(res.socket.server);
     io.on("connection", (socket) => {
       socket.broadcast.emit("a user connected");
+      socket.conn.on("packet", (packet) => {
+        console.log("Socket Packet:", packet); 
+      })
       socket.on("progress", (msg) => {
         console.log("Progress Made", msg);
         socket.broadcast.emit("new-progress", msg);

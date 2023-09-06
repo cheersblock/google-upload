@@ -97,13 +97,11 @@ handler.post(async (req, res) => {
       resource: fileMetadata,
       fields: "id",
     })
-    .then((res) => {
+    .then(async (res) => {
       console.log("🚀 ~ file: index.js:81 ~ .then ~ res:", res.data.id);
 
       fileId = res.data.id;
-      scanFolderForFiles(unzipDestination, res.data.id, socketio).then(
-        async () => await fs.promises.rmdir(unzipDestination)
-      );
+      await scanFolderForFiles(unzipDestination, res.data.id, socketio);
     });
   console.log("Folder Id:", file.data.id);
 
@@ -116,61 +114,138 @@ handler.post(async (req, res) => {
 
 const uploadSingleFile = async (fileName, filePath, _folderId, res) => {
   console.log("Folder Id inside upload file:", _folderId);
+  try {
+    const { data: { id, name } = {} } = await drive.files.create({
+      resource: {
+        name: fileName,
+        parents: [_folderId],
+      },
+      media: {
+        mimeType: "application/zip",
+        body: fs.createReadStream(filePath),
+      },
+      fields: "id,name",
+    });
 
-  const { data: { id, name } = {} } = await drive.files.create({
-    resource: {
-      name: fileName,
-      parents: [_folderId],
-    },
-    media: {
-      mimeType: "application/zip",
-      body: fs.createReadStream(filePath),
-    },
-    fields: "id,name",
-  });
-  console.log("File Uploaded", name, id);
-  const progress = 1;
-  --filesDoneUpl;
-  res.sockets.emit("progress", { numberOfFiles, filesDoneUpl });
+    console.log("File Uploaded", name, id);
+    --filesDoneUpl;
+    res.sockets.emit("progress", { numberOfFiles, filesDoneUpl });
+    console.log("4");
+  } catch (e) {
+    // console.log("Error on catch", e);
+  }
 };
 
 const scanFolderForFiles = async (folderPath, _fId, socketio) => {
-  const folder = await fs.promises.opendir(folderPath);
+  console.log("insde scan -----");
+  console.log("insde scan ---folderPath--", folderPath);
+  const folder = fs.opendirSync(folderPath);
   for await (const dirent of folder) {
+    console.log("dir-----", dirent);
     if (dirent.isFile()) {
+      console.log("3");
+      let p = path.join(folderPath, dirent.name);
+      console.log("path ---------", p);
       await uploadSingleFile(
         dirent.name,
         path.join(folderPath, dirent.name),
         _fId,
         socketio
-      ).then(
-        async () => await fs.promises.rm(path.join(folderPath, dirent.name))
-      );
-    } else if (dirent.isDirectory()) {
-      var newFilePath = path.join(folderPath, dirent.name);
-      console.log("Directory Path", newFilePath);
-      const fileMetadata = {
-        name: dirent.name,
-        parents: [_fId],
-        mimeType: "application/vnd.google-apps.folder",
-      };
-      const file = await drive.files
-        .create({
-          resource: fileMetadata,
-          fields: "id",
-        })
-        .then((res) => {
-          scanFolderForFiles(newFilePath, res.data.id, socketio).then(
-            async () => {
-              await fs.promises.rmdir(newFilePath);
-              if (filesDoneUpl == 0) {
-                fs.rmSync(mainDirectory, { recursive: true, force: true });
-                socketio.emit("Done Uploading", { numberOfFiles, totalSize });
-                console.log("--------Done Uploading!---------");
-              }
+      )
+        .then(
+          async () => await fs.promises.rm(path.join(folderPath, dirent.name))
+        )
+        .then(
+          // logic to remove the folder
+          async () => {
+            const folderContents = await fs.readdirSync(folderPath);
+            console.log(
+              "folderContents-----length-------",
+              folderContents.length
+            );
+            console.log("folderContents------------", folderContents);
+            if (folderContents.length === 0) {
+              console.log(
+                "🚀 ~ file: index.js:163 ~ folderContents:",
+                folderContents
+              );
+              //   await fs.promises.rmdir(folderPath);
+              console.log("Folder about to be removed-----", folderPath);
+              await fs.promises.rm(folderPath, {
+                recursive: true,
+                force: true,
+              });
             }
-          );
-        });
+          }
+        );
+      console.log("5");
+    }
+    if (dirent.isDirectory()) {
+      try {
+        console.log("6");
+        var newFilePath = path.join(folderPath, dirent.name);
+        console.log("Directory Path", newFilePath);
+        const fileMetadata = {
+          name: dirent.name,
+          parents: [_fId],
+          mimeType: "application/vnd.google-apps.folder",
+        };
+        const file = await drive.files
+          .create({
+            resource: fileMetadata,
+            fields: "id",
+          })
+          .then(async (res) => {
+            console.log("7");
+            await scanFolderForFiles(newFilePath, res.data.id, socketio)
+              .then(
+                // logic to remove the folder
+                async () => {
+                  const folderContents = fs.readdirSync(newFilePath);
+                  console.log(
+                    "folderContents2-----length-------",
+                    folderContents.length
+                  );
+                  console.log("folderContents2------------", folderContents);
+                  if (folderContents.length === 0) {
+                    // await fs.promises.rmdir(folderPath);
+                    console.log("Folder about to be removed-----", newFilePath);
+                    await fs.promises.rm(newFilePath, {
+                      recursive: true,
+                      force: true,
+                    });
+                  }
+                }
+              )
+              .then(
+                console.log(
+                  "🚀 ~ file: index.js:176 ~ .then ~ newFilePath:",
+                  newFilePath
+                ),
+                async () => {
+                  // await fs.promises
+                  //   .rmdir(newFilePath)
+                  //   .then(console.log("Folder deleted"))
+                  //   .catch((err) => {
+                  //     console.log("Error here", err);
+                  //   });
+                  if (filesDoneUpl == 0) {
+                    console.log("filesDoneUPL-------------", filesDoneUpl);
+                    fs.rmSync(mainDirectory, { recursive: true, force: true });
+                    socketio.emit("Done Uploading", {
+                      numberOfFiles,
+                      totalSize,
+                    });
+                    console.log("--------Done Uploading!---------");
+                  }
+                  console.log("8");
+                }
+              );
+            console.log("9");
+          });
+      } catch (error) {
+        console.log("🚀 ~ file: index.js:188 ~ forawait ~ error:", error);
+      }
     }
   }
 };
