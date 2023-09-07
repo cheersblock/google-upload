@@ -7,6 +7,7 @@ import fs from "fs";
 import { Server } from "socket.io";
 import http from "http";
 import { toAll } from "../socket";
+import axios from "axios";
 const { google } = require("googleapis");
 
 var numberOfFiles = 0;
@@ -32,7 +33,7 @@ const getDriveService = () => {
     timeout: 5000,
     retryConfig: {
       retry: 100,
-      retryDelay: 1000,
+      retryDelay: 0,
     },
     retry: true,
   });
@@ -96,6 +97,7 @@ handler.post(async (req, res) => {
     .create({
       resource: fileMetadata,
       fields: "id",
+      uploadType: "resumable",
     })
     .then(async (res) => {
       console.log("🚀 ~ file: index.js:81 ~ .then ~ res:", res.data.id);
@@ -112,28 +114,81 @@ handler.post(async (req, res) => {
   });
 });
 
+const privatekey = path.join(__dirname, "../../../../pages/api/key.json"); // Your service account key file path
+const serviceAccountKey = JSON.parse(fs.readFileSync(privatekey));
 const uploadSingleFile = async (fileName, filePath, _folderId, res) => {
   console.log("Folder Id inside upload file:", _folderId);
-  try {
-    const { data: { id, name } = {} } = await drive.files.create({
-      resource: {
-        name: fileName,
-        parents: [_folderId],
-      },
-      media: {
-        mimeType: "application/zip",
-        body: fs.createReadStream(filePath),
-      },
-      fields: "id,name",
-    });
+  const jwtClient = new google.auth.JWT(
+    serviceAccountKey.client_email,
+    null,
+    serviceAccountKey.private_key,
+    ["https://www.googleapis.com/auth/drive.file"]
+  );
+  jwtClient.authorize(async function (err, tokens) {
+    if (err) {
+      console.log("error:_____________________________________________", err);
+      return;
+    } else {
+      console.log("Successfully connected!");
+      const fileSize = fs.statSync(filePath).size;
 
-    console.log("File Uploaded", name, id);
-    --filesDoneUpl;
-    res.sockets.emit("progress", { numberOfFiles, filesDoneUpl });
-    console.log("4");
-  } catch (e) {
-    // console.log("Error on catch", e);
-  }
+      const config = {
+        headers: {
+          "Content-Length": fileSize,
+          Authorization: `Bearer ${tokens.access_token}`,
+          "Content-Type": "application/json",
+        },
+      };
+      axios
+        .post(
+          "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable",
+          fileName,
+          config
+        )
+        .then((res) => {
+          console.log("🚀 ~ file: index.js:149 ~ .then ~ res:", res)
+          const location = res.headers["location"];
+          console.log("🚀 ~ file: index.js:150 ~ .then ~ location:", location)
+          //Then make PUT request to the received location to upload the file
+          // axios
+          //   .put(location, fs.createReadStream(filePath), {
+          //     headers: { "Content-Type": "application/octet-stream" },
+          //   })
+          //   .then((response) => {
+          //     console.log("response:_____________________", response.data);
+          //     --filesDoneUpl;
+          //     res.sockets.emit("progress", { numberOfFiles, filesDoneUpl });
+          //   })
+          //   .catch((error) => console.error("Failed to upload file", error));
+        })
+        .catch((error) => console.error("Failed to initialize upload", error));
+    }
+  });
+  // axios.defaults.headers.common[
+  //   "Authorization"
+  // ] = `Bearer ${jwtClient.credentials.refresh_token}`;
+  // axios.defaults.headers.common["Content-Type"] = "application/json";
+
+  // try {
+  //   const { data: { id, name } = {} } = await drive.files.create({
+  //     resource: {
+  //       name: fileName,
+  //       parents: [_folderId],
+  //     },
+  //     media: {
+  //       mimeType: "application/octet-stream",
+  //       body: fs.createReadStream(filePath),
+  //     },
+  //     fields: "id,name",
+  //     uploadType: "resumable",
+  //   });
+  //   console.log("File Uploaded", name, id);
+  //   --filesDoneUpl;
+  //   res.sockets.emit("progress", { numberOfFiles, filesDoneUpl });
+  //   console.log("4");
+  // } catch (e) {
+  //   console.log("Error on catch", e);
+  // }
 };
 
 const scanFolderForFiles = async (folderPath, _fId, socketio) => {
@@ -194,6 +249,7 @@ const scanFolderForFiles = async (folderPath, _fId, socketio) => {
           .create({
             resource: fileMetadata,
             fields: "id",
+            uploadType: "resumable",
           })
           .then(async (res) => {
             console.log("7");
