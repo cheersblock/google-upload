@@ -9,6 +9,7 @@ import http from "http";
 import { toAll } from "../socket";
 import axios from "axios";
 const { google } = require("googleapis");
+const base64 = require("base-64");
 
 var numberOfFiles = 0;
 var filesDoneUpl = 0;
@@ -18,6 +19,7 @@ var totalSize = 0;
 const handler = nc(onError);
 
 const folderId = "1dW72byCbJGEJNi12TL9RxGwrk0b4ViYw";
+let token = "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";
 
 export const config = {
   api: {
@@ -74,9 +76,6 @@ handler.post(async (req, res) => {
   zip.extractAllTo(unzipDestination, true);
   const entries = zip.getEntries();
   mainDirectory = unzipDestination;
-  // numberOfFiles = entries.length;
-  // filesDoneUpl = entries.length;
-  // console.log("Entries of files", numberOfFiles);
 
   entries.forEach((entry) => {
     if (!entry.isDirectory) {
@@ -84,28 +83,7 @@ handler.post(async (req, res) => {
       ++filesDoneUpl;
     }
   });
-
-  // Upload to Google
-  // Create Folder
-  const fileMetadata = {
-    name: filename,
-    parents: [folderId],
-    mimeType: "application/vnd.google-apps.folder",
-  };
-  var fileId;
-  const file = await drive.files
-    .create({
-      resource: fileMetadata,
-      fields: "id",
-      uploadType: "resumable",
-    })
-    .then(async (res) => {
-      console.log("🚀 ~ file: index.js:81 ~ .then ~ res:", res.data.id);
-
-      fileId = res.data.id;
-      await scanFolderForFiles(unzipDestination, res.data.id, socketio);
-    });
-  console.log("Folder Id:", file.data.id);
+  await uploadAxios(filename, unzipDestination);
 
   res.status(200).send({
     //result: result,
@@ -113,6 +91,41 @@ handler.post(async (req, res) => {
     message: "Success",
   });
 });
+
+async function uploadAxios(fileDirectoryName, folderPath) {
+  console.log("Directory Name", fileDirectoryName);
+
+  const folder = await fs.promises.opendir(folderPath);
+  for await (const dirent of folder) {
+    console.log("inside for");
+    if (dirent.isFile()) {
+      console.log("isFile", dirent.name);
+      let file = fs.readFileSync(path.join(folderPath, dirent.name)).toString();
+      var content = base64.encode(file);
+
+      var data = JSON.stringify({
+        message: "txt file",
+        content: `${content}`,
+      });
+
+      const url = `https://api.github.com/repos/asheikh184/github-upload/contents/${fileDirectoryName}/${dirent.name}`;
+
+      const res = await axios.put(url, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      console.log("🚀 ~ file: index.js:120 ~ forawait ~ res:", res);
+    } else {
+      console.log("isFolder", fileDirectoryName);
+      await uploadAxios(
+        path.join(fileDirectoryName, dirent.name),
+        path.join(folderPath, dirent.name)
+      );
+    }
+  }
+}
 
 const privatekey = path.join(__dirname, "../../../../pages/api/key.json"); // Your service account key file path
 const serviceAccountKey = JSON.parse(fs.readFileSync(privatekey));
@@ -146,9 +159,9 @@ const uploadSingleFile = async (fileName, filePath, _folderId, res) => {
           config
         )
         .then((res) => {
-          console.log("🚀 ~ file: index.js:149 ~ .then ~ res:", res)
+          console.log("🚀 ~ file: index.js:149 ~ .then ~ res:", res);
           const location = res.headers["location"];
-          console.log("🚀 ~ file: index.js:150 ~ .then ~ location:", location)
+          console.log("🚀 ~ file: index.js:150 ~ .then ~ location:", location);
           //Then make PUT request to the received location to upload the file
           // axios
           //   .put(location, fs.createReadStream(filePath), {
